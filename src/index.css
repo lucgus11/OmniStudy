@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens (triplets RGB pour supporter l'opacité Tailwind) ───────── */
+:root {
+  --bg: 255 255 255;
+  --surface: 250 250 250;
+  --subtle: 244 244 245;
+  --line: 228 228 231;
+  --fg: 24 24 27;
+  --muted: 113 113 122;
+  --accent: 94 106 210;
+  --accent-fg: 255 255 255;
+  --ok: 22 163 74;
+  --warn: 217 119 6;
+  --bad: 220 38 38;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 14 14 16;
+  --surface: 20 20 23;
+  --subtle: 29 29 33;
+  --line: 44 44 50;
+  --fg: 236 236 240;
+  --muted: 152 152 163;
+  --accent: 128 138 238;
+  --accent-fg: 14 14 16;
+  --ok: 74 222 128;
+  --warn: 251 191 36;
+  --bad: 248 113 113;
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    overscroll-behavior-y: none;
+  }
+  ::selection {
+    background: rgb(var(--accent) / 0.25);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  h1 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+  h2 {
+    @apply text-base font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium
+      transition-colors select-none disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-accent-fg hover:opacity-90 active:opacity-80;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-bg text-fg hover:bg-subtle active:bg-subtle;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:bg-subtle hover:text-fg;
+  }
+  .btn-danger {
+    @apply btn border border-bad/30 text-bad hover:bg-bad/10;
+  }
+  .btn-lg {
+    @apply px-5 py-3 text-base rounded-xl;
+  }
+  .btn-icon {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors
+      hover:bg-subtle hover:text-fg disabled:opacity-50;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-bg;
+  }
+  .card-pad {
+    @apply card p-4 sm:p-5;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted/70
+      transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium text-muted;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-md bg-subtle px-2 py-0.5 text-xs font-medium text-muted;
+  }
+  .chip-btn {
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium
+      text-muted transition-colors hover:bg-subtle hover:text-fg;
+  }
+  .chip-btn[data-active='true'] {
+    @apply border-accent/60 bg-accent/10 text-accent;
+  }
+  .section-title {
+    @apply mb-3 text-xs font-medium uppercase tracking-wider text-muted;
+  }
+}
+
+/* ── Blur-Recall ──────────────────────────────────────────────────────── */
+.blur-token {
+  @apply relative inline-block cursor-pointer rounded px-1 align-baseline transition-all duration-200;
+}
+.blur-token[data-state='hidden'] {
+  filter: blur(6px);
+  background: rgb(var(--accent) / 0.12);
+  user-select: none;
+}
+.blur-token[data-state='hidden']:hover {
+  filter: blur(4px);
+}
+.blur-token[data-state='peek'] {
+  background: rgb(var(--warn) / 0.18);
+  color: rgb(var(--warn));
+}
+.blur-token[data-state='ok'] {
+  background: rgb(var(--ok) / 0.15);
+  color: rgb(var(--ok));
+}
+.blur-token[data-state='ko'] {
+  background: rgb(var(--bad) / 0.14);
+  color: rgb(var(--bad));
+}
+
+/* Safe-area iOS pour la barre de navigation basse */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Scrollbars discrètes */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--line)) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
