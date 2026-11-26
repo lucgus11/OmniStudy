@@ -6,8 +6,9 @@ PWA de révision d'examens, **offline-first** : React + Vite + TypeScript + Tail
 
 - **Matières** avec date d'examen (compte à rebours J-x, révisions plafonnées à la veille de l'examen)
 - **Import** : PDF (plusieurs à la fois, extraction locale pdf.js), `.md`, `.txt`, copier-coller
-- **IA** : synthèse hiérarchisée, version Blur-Recall, quiz (QCM, Vrai/Faux, ouvertes, mini-jeu d'association), script audio « mini-podcast »
-- **Révision** : Express (2 min), Focus (10 min), Libre, Urgence J-1 (notions faibles + points critiques)
+- **IA** : synthèse hiérarchisée, version Blur-Recall, quiz dense (12 à 30 questions par tranche de ~12 000 caractères : QCM, Vrai/Faux, ouvertes, mini-jeu d'association), script audio « mini-podcast »
+- **Plus de questions** : bouton sur la page d'un cours déjà analysé — l'IA génère de nouvelles questions sans répéter les existantes, ta progression est conservée
+- **Révision** : Express (2 min), Focus (10 min), Libre, Urgence J-1 (notions faibles + points critiques). Quand plus rien n'est échu, Express/Focus/Libre passent en révision anticipée (notions les plus fragiles d'abord) ; J-1 propose « Réviser quand même »
 - **Blur-Recall** : termes floutés, clic pour révéler (compté comme indice) ou saisie tolérante aux accents/fautes
 - **Audio** : Podcast (1× / 1,25× / 1,5×…) et Interro vocale (question → compte à rebours silencieux configurable → réponse), hors-ligne via les voix locales
 - **SRS** : À revoir / Moyen / Acquis → réajuste la fréquence (variante SM-2)
