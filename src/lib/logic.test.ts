@@ -4,7 +4,7 @@ import { review, buildQueue, initialSrs } from './srs';
 import { DAY } from './date';
 import { isCloseEnough, parseMarkdown, wrapKeywords, stripMarkers, mdToSpeech } from './text';
 import { splitForSpeech } from './speech';
-import { computeStreak } from './stats';
+import { computeStreak, last7Days, todayStats } from './stats';
 import type { Card } from './types';
 
 const mk = (o: Partial<Card>): Card => ({
@@ -36,6 +36,41 @@ describe('SRS', () => {
     const cards = [mk({ mastery: 2 }), mk({ mastery: 0 }), mk({ mastery: 2, critical: true }), mk({ mastery: 1 })];
     expect(buildQueue(cards, { pace: 'urgent' })).toHaveLength(3);
     expect(buildQueue(cards.slice(0, 1), { pace: 'urgent' })).toHaveLength(0);
+  });
+});
+
+describe('files de révision', () => {
+  const reviewed = (o: Partial<Card> = {}) =>
+    mk({ reps: 3, lastReviewedAt: 1, mastery: 2, dueAt: 5 * DAY, ...o });
+  it('express : repli en révision anticipée quand plus rien n’est échu', () => {
+    const cards = [reviewed(), reviewed(), reviewed()];
+    expect(buildQueue(cards, { pace: 'express', now: 0 })).toHaveLength(3);
+  });
+  it('anticipation : notions fragiles d’abord', () => {
+    const strong = reviewed({ id: 'strong', mastery: 2, dueAt: 2 * DAY });
+    const weak = reviewed({ id: 'weak', mastery: 1, dueAt: 9 * DAY });
+    expect(buildQueue([strong, weak], { pace: 'express', now: 0 })[0].id).toBe('weak');
+  });
+  it('urgence : vide si tout est acquis, sauf avec force', () => {
+    const cards = [reviewed(), reviewed()];
+    expect(buildQueue(cards, { pace: 'urgent', now: 0 })).toHaveLength(0);
+    expect(buildQueue(cards, { pace: 'urgent', now: 0, force: true })).toHaveLength(2);
+  });
+});
+
+describe('stats du jour', () => {
+  const now = new Date(2026, 10, 26, 12).getTime();
+  const sess = (mode: 'cards' | 'voice' | 'blur' | 'podcast', reviewed: number, durationSec: number) =>
+    ({ id: mode, subjectId: null, mode, pace: 'free' as const, durationSec, reviewed, correct: 0, startedAt: now, updatedAt: now, dirty: 0 as const, deleted: 0 as const });
+  it('ne compte comme cartes que les modes cartes et interro vocale', () => {
+    const t = todayStats([sess('cards', 10, 120), sess('voice', 4, 60), sess('blur', 30, 90), sess('podcast', 5, 300)], now);
+    expect(t.cards).toBe(14);
+    expect(t.seconds).toBe(570);
+  });
+  it('graphique en secondes d’étude', () => {
+    const w = last7Days([sess('podcast', 5, 300)], now);
+    expect(w[6].seconds).toBe(300);
+    expect(w[5].seconds).toBe(0);
   });
 });
 

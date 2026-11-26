@@ -18,30 +18,35 @@ export function computeStreak(sessions: Pick<StudySession, 'startedAt'>[], now =
   return streak;
 }
 
-/** Activité des 7 derniers jours (le plus ancien en premier). */
+/** Temps d'étude (en secondes) des 7 derniers jours, le plus ancien en premier. */
 export function last7Days(
-  sessions: Pick<StudySession, 'startedAt' | 'reviewed'>[],
+  sessions: Pick<StudySession, 'startedAt' | 'durationSec'>[],
   now = Date.now(),
-): { key: string; label: string; count: number; today: boolean }[] {
-  const out: { key: string; label: string; count: number; today: boolean }[] = [];
+): { key: string; label: string; seconds: number; today: boolean }[] {
+  const out: { key: string; label: string; seconds: number; today: boolean }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const key = dayKey(d.getTime());
-    const count = sessions
+    const seconds = sessions
       .filter((s) => dayKey(s.startedAt) === key)
-      .reduce((a, s) => a + Math.max(1, s.reviewed), 0);
-    out.push({ key, label: d.toLocaleDateString('fr-FR', { weekday: 'narrow' }), count, today: i === 0 });
+      .reduce((a, s) => a + Math.max(0, s.durationSec), 0);
+    out.push({ key, label: d.toLocaleDateString('fr-FR', { weekday: 'narrow' }), seconds, today: i === 0 });
   }
   return out;
 }
 
+/**
+ * Statistiques du jour.
+ *  - cards   : cartes/questions notées (modes Cartes & Interro vocale uniquement)
+ *  - seconds : temps d'étude total, tous modes confondus (cartes, Blur-Recall, audio)
+ */
 export function todayStats(sessions: StudySession[], now = Date.now()) {
   const key = dayKey(now);
   const today = sessions.filter((s) => dayKey(s.startedAt) === key);
   return {
     sessions: today.length,
-    reviewed: today.reduce((a, s) => a + s.reviewed, 0),
+    cards: today.filter((s) => s.mode === 'cards' || s.mode === 'voice').reduce((a, s) => a + s.reviewed, 0),
     seconds: today.reduce((a, s) => a + s.durationSec, 0),
   };
 }

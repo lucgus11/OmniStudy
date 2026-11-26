@@ -237,7 +237,12 @@ async function pullTable(name: TableName, userId: string): Promise<void> {
       // Une modification locale en attente et plus récente l'emporte (elle sera poussée).
       const toPut = rows.filter((r, i) => {
         const e = existing[i];
-        return !(e && e.dirty && e.updatedAt > r.updatedAt);
+        if (!e) return true;
+        // Une modification locale en attente, plus récente, l'emporte.
+        if (e.dirty && e.updatedAt > r.updatedAt) return false;
+        // Ligne déjà à jour : ne pas la réécrire (évite de relancer les requêtes live de l'UI).
+        if (!e.dirty && e.updatedAt === r.updatedAt) return false;
+        return true;
       });
       if (toPut.length) await table.bulkPut(toPut);
     });

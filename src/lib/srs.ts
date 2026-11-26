@@ -84,7 +84,14 @@ export const PACE_CONFIG: Record<Pace, { label: string; hint: string; maxCards: 
 
 export function buildQueue(
   cards: Card[],
-  opts: { pace: Pace; subjectId?: string | null; courseId?: string | null; now?: number },
+  opts: {
+    pace: Pace;
+    subjectId?: string | null;
+    courseId?: string | null;
+    now?: number;
+    /** Urgence J-1 : si plus aucun point faible/critique, révise quand même toutes les cartes. */
+    force?: boolean;
+  },
 ): Card[] {
   const now = opts.now ?? Date.now();
   let pool = cards.filter(
@@ -97,7 +104,9 @@ export function buildQueue(
 
   if (opts.pace === 'urgent') {
     // uniquement les notions mal maîtrisées + les points critiques
-    pool = pool.filter((c) => isWeak(c) || c.critical);
+    // (sauf si l'utilisateur force : on révise alors tout, les plus fragiles d'abord)
+    const strict = pool.filter((c) => isWeak(c) || c.critical);
+    pool = strict.length || !opts.force ? strict : pool;
     return pool
       .sort((a, b) => {
         const wa = (a.critical && isWeak(a) ? 0 : 1) - (b.critical && isWeak(b) ? 0 : 1);
@@ -111,9 +120,12 @@ export function buildQueue(
   const due = pool.filter((c) => !isNew(c) && isDue(c, now)).sort((a, b) => a.dueAt - b.dueAt);
   const fresh = shuffle(pool.filter(isNew));
   const queue = [...due, ...fresh];
-  if (opts.pace === 'free' && queue.length < max) {
-    // plus rien d'échu : on peut réviser en avance, les plus proches d'abord
-    const ahead = pool.filter((c) => !isNew(c) && !isDue(c, now)).sort((a, b) => a.dueAt - b.dueAt);
+  if (queue.length < max) {
+    // Plus assez de cartes échues : révision anticipée (jamais de session "vide").
+    // Les notions les plus fragiles d'abord, puis les plus proches de leur échéance.
+    const ahead = pool
+      .filter((c) => !isNew(c) && !isDue(c, now))
+      .sort((a, b) => a.mastery - b.mastery || a.dueAt - b.dueAt);
     queue.push(...ahead);
   }
   return queue.slice(0, max);

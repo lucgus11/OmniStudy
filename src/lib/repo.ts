@@ -193,6 +193,26 @@ export async function applyStudyPack(courseId: string, pack: StudyPack): Promise
   return { added, kept };
 }
 
+/** Ajoute des cartes IA supplémentaires à un cours (sans toucher à l'existant ni à la synthèse). */
+export async function addCards(courseId: string, cards: NewCard[]): Promise<number> {
+  const course = await db.courses.get(courseId);
+  if (!course) throw new Error('Cours introuvable');
+  const t = Date.now();
+  const known = new Set(
+    (await db.cards.where('courseId').equals(courseId).toArray()).filter((c) => !c.deleted).map((c) => normalizeAnswer(c.question)),
+  );
+  const fresh: Card[] = [];
+  for (const n of cards) {
+    const k = normalizeAnswer(n.question);
+    if (known.has(k)) continue;
+    known.add(k);
+    fresh.push(toCard(courseId, course.subjectId, n, t));
+  }
+  if (fresh.length) await db.cards.bulkAdd(fresh);
+  requestSync();
+  return fresh.length;
+}
+
 /** Note une carte (À revoir / Moyen / Acquis) et planifie la prochaine révision. */
 export async function gradeCard(cardId: string, grade: Grade): Promise<Card | undefined> {
   const card = await db.cards.get(cardId);

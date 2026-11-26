@@ -7,7 +7,7 @@ import { normalizeAnswer, shuffle } from './text';
 
 export const CHUNK_SIZE = 12_000;
 export const MAX_PARTS = 10;
-export const MAX_CARDS = 60;
+export const MAX_CARDS = 250;
 
 // ── Découpage ───────────────────────────────────────────────────────────────
 /** Découpe un long texte en parties ≤ size, en respectant paragraphes puis phrases. */

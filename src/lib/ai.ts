@@ -5,7 +5,7 @@
  */
 import { CHUNK_SIZE, MAX_PARTS, chunkText, mergePacks, normalizePack } from './aiParse';
 import { supabase } from './supabase';
-import type { StudyPack } from './types';
+import type { NewCard, StudyPack } from './types';
 
 export class AiError extends Error {
   constructor(
@@ -48,7 +48,7 @@ const sleep = (ms: number, signal?: AbortSignal) =>
   });
 
 async function callPart(
-  body: { text: string; title: string; subject: string; part: number; parts: number },
+  body: { text: string; title: string; subject: string; part: number; parts: number; mode?: 'full' | 'more'; existing?: string[] },
   signal?: AbortSignal,
 ): Promise<StudyPack> {
   const maxAttempts = 3;
@@ -130,4 +130,42 @@ export async function generateStudyPack(opts: {
     );
   }
   return { pack: mergePacks(packs), parts: parts.length, truncated };
+}
+
+/**
+ * Génère des questions SUPPLÉMENTAIRES pour un cours déjà analysé.
+ * Les questions existantes sont transmises à l'IA pour qu'elle évite les doublons.
+ */
+export async function generateMoreCards(opts: {
+  text: string;
+  title: string;
+  subject?: string;
+  existing: string[];
+  onProgress?: (p: GenerateProgress) => void;
+  signal?: AbortSignal;
+}): Promise<{ cards: NewCard[]; truncated: boolean }> {
+  const all = chunkText(opts.text, CHUNK_SIZE);
+  if (!all.length) throw new AiError('too_short', 'Le cours est vide.');
+  const truncated = all.length > MAX_PARTS;
+  const parts = all.slice(0, MAX_PARTS);
+
+  const packs: StudyPack[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    opts.onProgress?.({ part: i + 1, parts: parts.length });
+    packs.push(
+      await callPart(
+        {
+          text: parts[i],
+          title: opts.title,
+          subject: opts.subject ?? '',
+          part: i + 1,
+          parts: parts.length,
+          mode: 'more',
+          existing: [...opts.existing, ...packs.flatMap((p) => p.cards.map((c) => c.question))].slice(-120),
+        },
+        opts.signal,
+      ),
+    );
+  }
+  return { cards: mergePacks(packs).cards, truncated };
 }
