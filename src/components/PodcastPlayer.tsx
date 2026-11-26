@@ -38,7 +38,7 @@ export function PodcastPlayer({
   voiceRef.current = settings.voiceURI;
 
   // Phrases + index de piste, tronqués au budget de temps
-  const { chunks, owner } = useMemo(() => {
+  const computed = useMemo(() => {
     const chunks: string[] = [];
     const owner: number[] = [];
     let total = 0;
@@ -51,8 +51,16 @@ export function PodcastPlayer({
         total += d;
       }
     }
-    return { chunks, owner };
+    return { chunks, owner, sig: `${owner.join(',')}|${chunks.join('\u0001')}` };
   }, [tracks, budgetSec]);
+
+  // La synchro réécrit les cours en base → `tracks` change d'identité sans que le texte change.
+  // On ne recharge le lecteur (et on ne revient au début) que si le texte lu a réellement changé.
+  const { chunks, owner } = useMemo(
+    () => computed,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [computed.sig],
+  );
 
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -120,7 +128,8 @@ export function PodcastPlayer({
     return <p className="card-pad text-sm text-muted">Rien à lire : importe un cours (ou génère la synthèse avec l'IA).</p>;
   }
 
-  const n = narrator.current;
+  // ⚠️ Ne jamais lire narrator.current pendant le rendu (null au 1er rendu) : on le lit au moment du clic.
+  const nar = () => narrator.current;
   const track = tracks[owner[Math.min(idx, owner.length - 1)]];
   // (curTrack / trackCount sont calculés plus bas, avant leur utilisation)
   const total = chunks.reduce((a, c) => a + estimateSeconds(c, settings.ttsRate), 0);
@@ -130,6 +139,7 @@ export function PodcastPlayer({
   const trackCount = new Set(owner).size;
 
   const jumpTrack = (dir: -1 | 1) => {
+    const n = nar();
     if (!n) return;
     if (dir === 1) {
       const next = owner.indexOf(curTrack + 1);
@@ -145,7 +155,7 @@ export function PodcastPlayer({
   const setRate = (r: number) => {
     updateSettings({ ttsRate: r });
     rateRef.current = r;
-    n?.restartCurrent();
+    nar()?.restartCurrent();
   };
 
   return (
@@ -181,7 +191,7 @@ export function PodcastPlayer({
         <button
           className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg transition hover:opacity-90 active:scale-95"
           aria-label={playing ? 'Pause' : 'Lecture'}
-          onClick={() => (playing ? n?.pause() : n?.play())}
+          onClick={() => (playing ? nar()?.pause() : nar()?.play())}
         >
           {playing ? <Pause className="h-6 w-6" /> : <Play className="ml-0.5 h-6 w-6" />}
         </button>
