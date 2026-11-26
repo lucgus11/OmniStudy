@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { QuickStart } from '@/components/QuickStart';
 import { EmptyState, Loading, PageHeader, ProgressBar } from '@/components/ui';
-import { countdownLabel, daysUntil, formatShortDate } from '@/lib/date';
+import { countdownLabel, daysUntil, formatDuration, formatShortDate } from '@/lib/date';
 import { useCards, useSessions, useSubjects } from '@/lib/hooks';
 import { computeStreak, last7Days, subjectStats, todayStats } from '@/lib/stats';
 
@@ -49,15 +49,20 @@ export default function Dashboard() {
     );
   }
 
-  const max = Math.max(1, ...data.week.map((d) => d.count));
+  const max = Math.max(1, ...data.week.map((d) => d.seconds));
 
   return (
     <>
       <PageHeader
         title={`${greeting()} 👋`}
         subtitle={
-          data.today.reviewed > 0
-            ? `${data.today.reviewed} révision${data.today.reviewed > 1 ? 's' : ''} aujourd'hui — continue comme ça.`
+          data.today.cards > 0 || data.today.seconds >= 60
+            ? [
+                data.today.cards > 0 ? `${data.today.cards} carte${data.today.cards > 1 ? 's' : ''} révisée${data.today.cards > 1 ? 's' : ''}` : null,
+                data.today.seconds >= 60 ? `${Math.round(data.today.seconds / 60)} min d’étude` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') + ' aujourd’hui.'
             : data.all.due > 0
               ? `${data.all.due} carte${data.all.due > 1 ? 's' : ''} à réviser aujourd'hui.`
               : 'Rien d’urgent : une micro-session entretient la mémoire.'
@@ -137,15 +142,15 @@ export default function Dashboard() {
 
         {/* Activité 7 jours */}
         <section>
-          <h3 className="section-title">7 derniers jours</h3>
-          <div className="card-pad flex items-end justify-between gap-2" aria-label="Activité des 7 derniers jours">
+          <h3 className="section-title">Temps d’étude · 7 derniers jours</h3>
+          <div className="card-pad flex items-end justify-between gap-2" aria-label="Temps d’étude des 7 derniers jours">
             {data.week.map((d) => (
               <div key={d.key} className="flex flex-1 flex-col items-center gap-1.5">
                 <div className="flex h-16 w-full items-end justify-center">
                   <div
-                    className={`w-full max-w-[28px] rounded-md transition-all ${d.count ? 'bg-accent' : 'bg-subtle'}`}
-                    style={{ height: `${Math.max(8, (d.count / max) * 100)}%`, opacity: d.count ? 0.35 + 0.65 * (d.count / max) : 1 }}
-                    title={`${d.count} révision(s)`}
+                    className={`w-full max-w-[28px] rounded-md transition-all ${d.seconds ? 'bg-accent' : 'bg-subtle'}`}
+                    style={{ height: `${Math.max(8, (d.seconds / max) * 100)}%`, opacity: d.seconds ? 0.35 + 0.65 * (d.seconds / max) : 1 }}
+                    title={d.seconds ? formatDuration(d.seconds) : 'Aucune étude'}
                   />
                 </div>
                 <span className={`text-[11px] uppercase ${d.today ? 'font-semibold text-fg' : 'text-muted'}`}>{d.label}</span>

@@ -1,9 +1,9 @@
-import { ArrowLeft, EyeOff, Headphones, Pencil, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, EyeOff, Headphones, Pencil, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { RichText } from '@/components/RichText';
 import { EmptyState, Loading, PageHeader, Segmented, Spinner, useToast } from '@/components/ui';
-import { generateForCourse } from '@/lib/generate';
+import { generateForCourse, generateMoreForCourse } from '@/lib/generate';
 import { useCards, useCourse, useOnline } from '@/lib/hooks';
 import { deleteCard, deleteCourse, updateCourse } from '@/lib/repo';
 import { useStore } from '@/lib/store';
@@ -48,6 +48,23 @@ export default function CourseView() {
     try {
       const r = await generateForCourse(course.id, (p) => setProgress(`Analyse IA — partie ${p.part}/${p.parts}…`));
       toast(`${r.cards} question${r.cards > 1 ? 's' : ''} prête${r.cards > 1 ? 's' : ''} ✓${r.truncated ? ' (cours tronqué : trop long)' : ''}`, 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Échec de la génération', 'error');
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  const generateMore = async () => {
+    setProgress('Nouvelles questions…');
+    try {
+      const r = await generateMoreForCourse(course.id, (p) => setProgress(`Nouvelles questions — partie ${p.part}/${p.parts}…`));
+      toast(
+        r.added > 0
+          ? `${r.added} nouvelle${r.added > 1 ? 's' : ''} question${r.added > 1 ? 's' : ''} ajoutée${r.added > 1 ? 's' : ''} ✓`
+          : 'Aucune nouvelle question : le cours semble déjà bien couvert.',
+        r.added > 0 ? 'success' : 'info',
+      );
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Échec de la génération', 'error');
     } finally {
@@ -102,6 +119,11 @@ export default function CourseView() {
           {progress ? <Spinner /> : hasAi ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
           {progress ?? (hasAi ? 'Régénérer avec l’IA' : 'Analyser avec l’IA')}
         </button>
+        {hasAi && (
+          <button className="btn-secondary" disabled={!canAi || !!progress} onClick={() => void generateMore()}>
+            <Plus className="h-4 w-4" /> Plus de questions
+          </button>
+        )}
         {!canAi && (
           <span className="text-xs text-muted">
             {!supabaseEnabled ? 'IA : configure Supabase + Vercel.' : !auth.userId ? 'IA : connecte-toi.' : 'IA : indisponible hors-ligne.'}

@@ -51,6 +51,7 @@ export default function Session() {
   const pace = (['express', 'focus', 'free', 'urgent'].includes(params.get('pace') ?? '') ? params.get('pace') : 'express') as Pace;
   const subjectId = params.get('subject');
   const courseId = params.get('course');
+  const force = params.get('force') === '1';
 
   const [queue, setQueue] = useState<Card[] | null>(null);
   const [i, setI] = useState(0);
@@ -66,12 +67,12 @@ export default function Session() {
     let alive = true;
     void (async () => {
       const cards = await db.cards.filter((c) => !c.deleted).toArray();
-      if (alive) setQueue(buildQueue(cards, { pace, subjectId, courseId }));
+      if (alive) setQueue(buildQueue(cards, { pace, subjectId, courseId, force }));
     })();
     return () => {
       alive = false;
     };
-  }, [pace, subjectId, courseId]);
+  }, [pace, subjectId, courseId, force]);
 
   const limit = PACE_CONFIG[pace].seconds;
   useTick(1000, !done && !!queue?.length);
@@ -150,10 +151,23 @@ export default function Session() {
               ? 'Toutes tes notions sont acquises et aucun point critique n’est en suspens.'
               : 'Importe un cours et génère un quiz avec l’IA, ou essaie le mode Session libre.'}
           </p>
-          <div className="mt-6 flex justify-center gap-2">
-            <Link to="/import" className="btn-primary">
-              Importer un cours
-            </Link>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            {pace === 'urgent' && !force ? (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  const q = new URLSearchParams(params);
+                  q.set('force', '1');
+                  nav(`/session?${q}`, { replace: true });
+                }}
+              >
+                Réviser quand même toutes mes cartes
+              </button>
+            ) : (
+              <Link to="/import" className="btn-primary">
+                Importer un cours
+              </Link>
+            )}
             <Link to="/" className="btn-secondary">
               Accueil
             </Link>
